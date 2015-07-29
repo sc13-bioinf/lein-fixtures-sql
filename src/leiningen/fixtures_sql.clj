@@ -9,6 +9,20 @@
 
 (defn not-nil? [maybe-nil] (not (nil? maybe-nil)))
 
+(defn wild-card-transform
+  "Find wild card transform maps"
+  [k transform-map]
+  (let [k-depth (count k)
+        tm-filtered-by-depth (filter (fn [[k v]] (= (count k) k-depth)) transform-map)]
+    (filter (fn [[tm-k tm-v]]
+              (let [wild-cards (into #{} (keep-indexed (fn [idx item] (when (= identity item) idx)) tm-k))]
+                (when (not (empty? wild-cards))
+                  (let [matches (into #{} (map-indexed (fn [tm-k-i tm-k-v]
+                                                         (if (contains? wild-cards tm-k-i)
+                                                           true
+                                                           (= (get k tm-k-i) tm-k-v))) tm-k))]
+                    (= matches #{true}))))) tm-filtered-by-depth)))
+
 (defn properties->map
   "Convert the properties list to a map, transforming the value
   whenever a transformer is defined for that key."
@@ -20,7 +34,9 @@
                  (let [k (keyfor entry)]
                    (if-let [f (transformer-for k)]
                      (assoc-in accum k (f (val entry)))
-                     (assoc-in accum k (val entry)))))
+                     (if-let [wild-card-f (second (first (wild-card-transform k transformer-for)))]
+                       (assoc-in accum k (wild-card-f (val entry)))
+                       (assoc-in accum k (val entry))))))
                {} properties))))
 
 (defn load-properties
@@ -33,7 +49,9 @@
        (let [properties (doto (java.util.Properties.) (.load (io/input-stream resource)))]
          (properties->map properties transform-map)))))
 
-(def transform-map {[:e-mail :exception-handler :recipient] #(str/split % #",")})
+(def transform-map {[:e-mail :exception-handler :recipient] #(str/split % #",")
+                    [:fixtures identity :tables] #(str/split % #",")
+                    })
 
 (defn read-config
   "Read `config-file`, apply `config-transformers`"
@@ -105,7 +123,7 @@
   (let [resolved-config-file-path (resolve-config-file project (:config options))
         _ (info (str/join "" ["Reading config from '" resolved-config-file-path "'"]))]
   (if-let [config (read-config resolved-config-file-path)]
-    (let [databases ""
+    (let [databases (get-in config [:fixtures] [])
           _ (info "databases: " databases)]
       )
     (println "No properties file found!" (System/getProperty "line.separator") (System/getProperty "line.separator") (help/help-for "fixtures-sql")))))
