@@ -53,7 +53,8 @@
 
 (def transform-map {[:e-mail :exception-handler :recipient] #(str/split % #",")
                     [:fixtures identity :tables] #(str/split % #",")
-                    [:postgres :opts-dump-schema] #(str/split % #" ")})
+                    [:postgres :opts-dump-schema] #(str/split % #" ")
+                    [:postgres :opts-dump-table] #(str/split % #" ")})
 
 (defn read-config
   "Read `config-file`, apply `config-transformers`"
@@ -127,8 +128,8 @@
      :port (nth dsn-parts 1)
      :db-name (nth dsn-parts 2)}))
 
-(defn create-fixtures-for-db-postgres
-  "Create fixtures using pg_dump"
+(defn create-fixtures-for-db-postgres-schemas
+  "Create fixture for the schemas"
   [config k database]
   (let [db (:db database)
         pg-dump-path (get-in config [:postgres :pg-dump-path])
@@ -136,7 +137,7 @@
         dsn (pg-parse-subname (:subname db))
         full-dsn (str/join "" ["postgresql://" (:user db) ":" (:password db) "@" (:host dsn) ":" (:port dsn) "/" (:db-name dsn)])
         output-dir (:root database)
-        create-db-output-file (str/join (System/getProperty "file.separator") [output-dir "create.sql"])
+        create-db-output-file (str/join (System/getProperty "file.separator") [output-dir (str/join "." ["initialise" "database" "create" "sql"])])
         create-db-cmd-role (if (contains? db :role) [pg-dump-path "--role" (:role db)] [pg-dump-path])
         create-db-cmd (conj create-db-cmd-role
                             "--dbname" full-dsn
@@ -150,6 +151,39 @@
   (info "exit: " @(:exit result))
   (info "out: " @(:out result))
   (info "err: " @(:err result))))
+
+(defn create-fixtures-for-db-postgres-table
+  "Create fixture for table data"
+  [config k database table]
+  (let [db (:db database)
+        pg-dump-path (get-in config [:postgres :pg-dump-path])
+        _ (info "using pg_dump " pg-dump-path)
+        dsn (pg-parse-subname (:subname db))
+        full-dsn (str/join "" ["postgresql://" (:user db) ":" (:password db) "@" (:host dsn) ":" (:port dsn) "/" (:db-name dsn)])
+        output-dir (:root database)
+        table-db-output-file (str/join (System/getProperty "file.separator") [output-dir (str/join "." ["initialise" "table" table "sql"])])
+        table-db-cmd-role (if (contains? db :role) [pg-dump-path "--role" (:role db)] [pg-dump-path])
+        table-db-cmd (conj table-db-cmd-role
+                            "--dbname" full-dsn
+                            "--table" table
+                            "-f" table-db-output-file)
+        table-db-cmd-full (concat table-db-cmd (get-in config [:postgres :opts-dump-table]))
+        ;;_ (info "table-db-cmd: " table-db-cmd-full)
+        process (apply sh/proc table-db-cmd-full)
+        result {:exit (future (sh/exit-code process))
+                :out (future (sh/stream-to-string process :out))
+                :err (future (sh/stream-to-string process :err))}]
+  (info "exit: " @(:exit result))
+  (info "out: " @(:out result))
+  (info "err: " @(:err result))))
+
+(defn create-fixtures-for-db-postgres
+  "Create fixtures using pg_dump"
+  [config k database]
+  (let [_ (create-fixtures-for-db-postgres-schemas config k database)
+        tables (:tables database)
+        _ (info "tables: " tables)]
+    (dorun (map (partial create-fixtures-for-db-postgres-table config k database) tables))))
 
 
 (defn create-fixtures-for-db
