@@ -16,7 +16,7 @@ You can specify this like so:
 lein fixtures-sql --config fixtures-sql.properties
 ````
 
-By default it will try to load resources/fixtures-sql.properties.
+By default it will try to load resources/fixtures-sql.properties or test-resources/fixtures-sql.properties.
 
 This properties file should contain the connection details for read-only users of your target databases.
 (i.e. development or production)
@@ -29,6 +29,7 @@ fixtures.myprojectdb.db.subprotocol = postgresql
 fixtures.myprojectdb.db.subname     = //test.google.com:3000/myproject_dev
 fixtures.myprojectdb.db.user        = userone
 fixtures.myprojectdb.db.password    = mysecurepassword
+fixtures.myprojectdb.db.role        = myproject_dev_ro
 fixtures.myprojectdb.tables         = some_lookup_table,some_other_lookup_table
 fixtures.myprojectdb.root           = test-resources/fixtures/myprojectdb
 postgres.pg-dump-path               = /usr/local/bin/pg_dump
