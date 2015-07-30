@@ -110,7 +110,7 @@
 (defn resolve-config-file
   "Locate the config file by looking in the projects resources dirs"
   [project config-file-path]
-  (let [resource-paths (flatten (filter not-nil? (reduce (partial extract-resource-paths project) [] [[:profiles :test :resource-paths] [:resource-paths]])))
+  (let [resource-paths (conj (flatten (filter not-nil? (reduce (partial extract-resource-paths project) [] [[:profiles :test :resource-paths] [:resource-paths]]))) "resources")
         _ (info "Searching resource-paths: " resource-paths " for " config-file-path)
         fn-parts (str/split config-file-path (re-pattern (System/getProperty "file.separator")))]
     (cond
