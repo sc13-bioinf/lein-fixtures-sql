@@ -3,11 +3,13 @@
             [clojure.tools.logging :refer [info error]]
             [clojure.tools.cli :refer [cli]]
             [clojure.java.io :as io]
+            [me.raynes.conch.low-level :refer [proc feed-from-string stream-to-string exit-code] :as sh]
             [leiningen.help :as help])
   (:import [java.lang System]
            [java.io StringWriter PrintWriter]))
 
 (defn not-nil? [maybe-nil] (not (nil? maybe-nil)))
+(defn not-empty? [maybe-empty] (not (empty? maybe-empty)))
 
 (defn wild-card-transform
   "Find wild card transform maps"
@@ -16,7 +18,7 @@
         tm-filtered-by-depth (filter (fn [[k v]] (= (count k) k-depth)) transform-map)]
     (filter (fn [[tm-k tm-v]]
               (let [wild-cards (into #{} (keep-indexed (fn [idx item] (when (= identity item) idx)) tm-k))]
-                (when (not (empty? wild-cards))
+                (when (not-empty? wild-cards)
                   (let [matches (into #{} (map-indexed (fn [tm-k-i tm-k-v]
                                                          (if (contains? wild-cards tm-k-i)
                                                            true
@@ -51,7 +53,7 @@
 
 (def transform-map {[:e-mail :exception-handler :recipient] #(str/split % #",")
                     [:fixtures identity :tables] #(str/split % #",")
-                    })
+                    [:postgres :opts-dump-schema] #(str/split % #" ")})
 
 (defn read-config
   "Read `config-file`, apply `config-transformers`"
@@ -117,15 +119,55 @@
      (search-resource-paths (conj resource-paths "") (first fn-parts))
      :else config-file-path)))
 
+(defn pg-parse-subname
+  "Extract host port and db name from dsn"
+  [dsn]
+  (let [dsn-parts (filter not-empty? (str/split dsn #"[/:]"))]
+    {:host (first dsn-parts)
+     :port (nth dsn-parts 1)
+     :db-name (nth dsn-parts 2)}))
+
+(defn create-fixtures-for-db-postgres
+  "Create fixtures using pg_dump"
+  [config k database]
+  (let [db (:db database)
+        pg-dump-path (get-in config [:postgres :pg-dump-path])
+        _ (info "using pg_dump " pg-dump-path)
+        dsn (pg-parse-subname (:subname db))
+        full-dsn (str/join "" ["postgresql://" (:user db) ":" (:password db) "@" (:host dsn) ":" (:port dsn) "/" (:db-name dsn)])
+        output-dir (:root database)
+        create-db-output-file (str/join (System/getProperty "file.separator") [output-dir "create.sql"])
+        create-db-cmd-role (if (contains? db :role) [pg-dump-path "--role" (:role db)] [pg-dump-path])
+        create-db-cmd (conj create-db-cmd-role
+                            "--dbname" full-dsn
+                            "-f" create-db-output-file)
+        create-db-cmd-full (concat create-db-cmd (get-in config [:postgres :opts-dump-schema]))
+        ;;_ (info "create-db-cmd: " create-db-cmd-full)
+        process (apply sh/proc create-db-cmd-full)
+        result {:exit (future (sh/exit-code process))
+                :out (future (sh/stream-to-string process :out))
+                :err (future (sh/stream-to-string process :err))}]
+  (info "exit: " @(:exit result))
+  (info "out: " @(:out result))
+  (info "err: " @(:err result))))
+
+
+(defn create-fixtures-for-db
+  [config [k database]]
+  (if (and (contains? database :db)
+           (contains? database :root))
+    (condp (:subprotocol (:db database))
+      (= "postgres") (create-fixtures-for-db-postgres config k database))
+    (println "missing :db or :root for database " k)))
+
 (defn- create-fixtures
   "Create fixtures files based on the configuration in the properties file"
   [project options]
   (let [resolved-config-file-path (resolve-config-file project (:config options))
         _ (info (str/join "" ["Reading config from '" resolved-config-file-path "'"]))]
   (if-let [config (read-config resolved-config-file-path)]
-    (let [databases (get-in config [:fixtures] [])
-          _ (info "databases: " databases)]
-      )
+    (let [databases (get-in config [:fixtures] [])]
+      (dorun (map (partial create-fixtures-for-db config) databases)))
     (println "No properties file found!" (System/getProperty "line.separator") (System/getProperty "line.separator") (help/help-for "fixtures-sql")))))
 
 (defn fixtures-sql

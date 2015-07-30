@@ -5,6 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/tools.cli "0.3.1"]
                  [org.clojure/tools.logging "0.3.1"]
+                 [me.raynes/conch "0.8.0"]
                  [lein-light-nrepl "0.0.12"]]
   :repl-options {:nrepl-middleware [lighttable.nrepl.handler/lighttable-ops]}
   :eval-in-leiningen true)
