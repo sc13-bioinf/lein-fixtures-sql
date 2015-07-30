@@ -1,4 +1,4 @@
-# fixtures-sql
+# lein-fixtures-sql
 
 A Leiningen plugin to generate sql fixtures from your production database.
 
