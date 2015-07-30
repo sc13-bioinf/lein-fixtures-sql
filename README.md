@@ -4,7 +4,9 @@ A Leiningen plugin to generate sql fixtures from your production database.
 
 ## Usage
 
-Put `[![Clojars Project](http://clojars.org/org.clojars.sc13-bioinf/lein-fixtures-sql/latest-version.svg)](http://clojars.org/org.clojars.sc13-bioinf/lein-fixtures-sql)` into the `:plugins` vector of your
+[![Clojars Project](http://clojars.org/org.clojars.sc13-bioinf/lein-fixtures-sql/latest-version.svg)](http://clojars.org/org.clojars.sc13-bioinf/lein-fixtures-sql)
+
+Put `` into the `:plugins` vector of your
 `:user` profile, or if you are on Leiningen 1.x do `lein plugin install
 lein-fixtures-sql 0.0.2`.
 
