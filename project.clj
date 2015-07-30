@@ -1,4 +1,4 @@
-(defproject org.clojars.sc13-bioinf/lein-fixtures-sql "0.0.2"
+(defproject org.clojars.sc13-bioinf/lein-fixtures-sql "0.0.3"
   :description "Generate sql fixtures from your production databases"
   :url "https://github.com/sc13-bioinf/lein-fixtures-sql"
   :license {:name "Eclipse Public License"
