@@ -6,9 +6,7 @@ A Leiningen plugin to generate sql fixtures from your production database.
 
 [![Clojars Project](http://clojars.org/org.clojars.sc13-bioinf/lein-fixtures-sql/latest-version.svg)](http://clojars.org/org.clojars.sc13-bioinf/lein-fixtures-sql)
 
-Put `` into the `:plugins` vector of your
-`:user` profile, or if you are on Leiningen 1.x do `lein plugin install
-lein-fixtures-sql 0.0.2`.
+Put that into the `:plugins` vector of your `:user` profile
 
 lein fixtures-sql
 
@@ -28,12 +26,12 @@ The format of the properties file is as follows:
 ````
 fixtures.myprojectdb.db.classname   = org.postgresql.Driver
 fixtures.myprojectdb.db.subprotocol = postgresql
-fixtures.myprojectdb.db.subname     = //test.google.com:3000/myproject\_dev
+fixtures.myprojectdb.db.subname     = //test.google.com:3000/myproject_dev
 fixtures.myprojectdb.db.user        = userone
 fixtures.myprojectdb.db.password    = mysecurepassword
-fixtures.myprojectdb.tables         = some\_lookup\_table,some\_other\_lookup\_table
+fixtures.myprojectdb.tables         = some_lookup_table,some_other_lookup_table
 fixtures.myprojectdb.root           = test-resources/fixtures/myprojectdb
-postgres.pg-dump-path               = /usr/local/bin/pg\_dump
+postgres.pg-dump-path               = /usr/local/bin/pg_dump
 postgres.opts-dump-schema           = --clean --no-owner --no-privileges --schema-only
 postgres.opts-dump-table            = --data-only
 ````
@@ -42,8 +40,8 @@ This will use pg\_dump to generate the following files:
 
 ````
 test-resources/fixtures/myprojectdb/initialise.database.create.sql
-test-resources/fixtures/myprojectdb/initialise.table.some\_lookup\_table.sql
-test-resources/fixtures/myprojectdb/initialise.table.some\_other\_lookup\_table.sql
+test-resources/fixtures/myprojectdb/initialise.table.some_lookup_table.sql
+test-resources/fixtures/myprojectdb/initialise.table.some_other_lookup_table.sql
 ````
 
 ## License
